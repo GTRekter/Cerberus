@@ -65,23 +65,22 @@ map_resources() {
             local id=$(echo "$resource" | jq -r '.id')
             local name=$(echo "$resource" | jq -r '.name')
 
-            local matched_providers=$(echo "$converted_map" | jq -r --arg type "$type" 'map(select(.azure_types[] | contains($type))) | .[].terraform_type')
+            # local matched_providers=$(echo "$converted_map" | jq -r --arg type "$type" 'map(select(.azure_types[] | contains($type))) | .[].terraform_type')
+            local matched_provider=$(echo "$converted_map" | jq -r --arg type "$type" 'map(select((.azure_types | join("/")) == $type)) | .[].terraform_type')
 
-            if [ -n "$matched_providers" ]; then
-                local appendix=""
-                if [ $(echo "$matched_providers" | wc -l) -gt 1 ]; then
+            if [ -n "$matched_provider" ]; then
+                appendix=""
+                if [[ $(echo "$matched_provider" | wc -l) -gt 1 ]]; then
                     echo "# Multiple matching entries found for resource:"
                     echo "# Resource Type: $type"
                     echo "# Resource ID: $id"
                     echo "# ---"
                     appendix="#"
                 fi
-                for matched_provider in $matched_providers; do
-                    echo $appendix'import {'
-                    echo $appendix'  id = "'$id'"'
-                    echo $appendix'  to = '$matched_provider'.'$name''
-                    echo $appendix'}'
-                done
+                echo $appendix'import {'
+                echo $appendix'  id = "'$id'"'
+                echo $appendix'  to = '$matched_provider'.'$name''
+                echo $appendix'}'
             else
                 echo "# No matching entry found for resource:"
                 echo "# Resource Type: $type"
